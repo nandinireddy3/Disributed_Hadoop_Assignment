@@ -1,0 +1,49 @@
+#!/usr/bin/env python3
+import subprocess
+import sys
+import os
+
+Iterations = 10
+
+# for getting all command arguments
+hadoop_jar_file = sys.argv[1]
+local_input_dir = sys.argv[2]
+hdfs_input_dir = sys.argv[3]
+hdfs_output_dir = sys.argv[4]
+
+if not os.path.isdir(local_input_dir):
+    print('Something went wrong while trying to open the input dir on the local FS', file=sys.stderr)
+    exit(1)
+
+# removing the file in input directory if already exist
+# hdfs_input_dir = "/"+hdfs_input_dir
+# hdfs_output_dir = "/"+hdfs_output_dir
+subprocess.call(["hdfs", "dfs", "-mkdir", "-p","/user/root"])
+subprocess.call(["hdfs", "dfs", "-mkdir", hdfs_input_dir])
+
+subprocess.call(["hdfs", "dfs", "-rm","-r", hdfs_input_dir+"/*"])
+# copying input file to hdfs directory
+subprocess.call(["hdfs", "dfs", "-copyFromLocal", local_input_dir, hdfs_input_dir])
+subprocess.call(["hdfs", "dfs", "-rm","-r", hdfs_output_dir])
+subprocess.call(["hadoop", "jar",hadoop_jar_file, "-D mapred.reduce.tasks=3","-input", hdfs_input_dir+"/*", "-output", hdfs_output_dir, "-mapper", "python3 mapper0.py", "-reducer","cat", "-file", "mapper0.py"])
+# subprocess.call(["hdfs", "dfs", "-cat", hdfs_output_dir+"/*"])
+
+
+# removing the file in input directory if already exist
+for multiple_itrs in range(Iterations):
+    subprocess.call(["hdfs", "dfs", "-rm","-r", hdfs_input_dir+"/*"])
+    subprocess.call(["hadoop", "fs", "-cp", hdfs_output_dir, hdfs_input_dir])
+    subprocess.call(["hdfs", "dfs", "-rm","-r", hdfs_output_dir])
+    # copying input file to hdfs directory
+    subprocess.call(["hadoop", "jar",hadoop_jar_file, "-D mapred.reduce.tasks=3","-input", hdfs_input_dir+"/*", "-output", hdfs_output_dir, "-mapper", "python3 mapper1.py", "-reducer", "python3 reducer0.py", "-file", "mapper1.py", "-file", "reducer0.py"])
+    #subprocess.call(["hdfs", "dfs", "-cat", hdfs_output_dir+"/*"])
+
+# removing the file in input directory if already exist
+subprocess.call(["hdfs", "dfs", "-rm","-r", hdfs_input_dir+"/*"])
+subprocess.call(["hadoop", "fs", "-cp", hdfs_output_dir, hdfs_input_dir])
+subprocess.call(["hdfs", "dfs", "-rm","-r", hdfs_output_dir])
+# copying input file to hdfs directory
+subprocess.call(["hadoop", "jar",hadoop_jar_file, "-D mapred.reduce.tasks=3","-input", hdfs_input_dir+"/*", "-output", hdfs_output_dir, "-mapper", "cat", "-reducer", "python3 reducer1.py", "-file", "reducer1.py"])
+# subprocess.call(["hdfs", "dfs", "-cat", hdfs_output_dir+"/*"])
+
+
